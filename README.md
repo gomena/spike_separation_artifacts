@@ -1,6 +1,4 @@
 
-<<<<<<< HEAD
-=======
 # Large-scale separation of neural spikes from stimulation artifacts code
 
 This repo contains (matlab) sample code for doing spike sorting with stimulation artifacts.
@@ -29,4 +27,3 @@ This code is based on a 512-array, the one depicted below(each circle represents
 
 * The structure Array in `/Utils`, `Array.m` contains array-specific information (e.g. positions, spacing, etc). Specifics for a distinct, 519-array (see below) are also shown there, to illustrate that the algorithm depends on the array through those parameters, and therefore, extensions are straightforward as long as assumptions hold.
 ![](/Utils/array519.png)
->>>>>>> 394a13c4df7f78ae94ba42ccfc69d0423b42527d

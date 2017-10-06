@@ -1,6 +1,12 @@
 function [Output,params]=DoSpikeSortingLargeScale(params,arrayObj,DataStr,varargin)
-% Gonzalo Mena, 03/2016
-% Lauren Grosberg 6/2016 edits to handle the array object
+%DoSpikeSortingLargeScale is a wrapper of SpikeSortingAllCases
+%  SpikeSortingAllCases; it performs spike identification to responses to
+%    electrical stimulation at a single electrical stimulus
+%  params: structure with details on parameters.
+%  arrayObj: structure containing details for array
+%  DataStr: direction to a .mat file that contains all relevant data
+%    (traces, list of stimulating electrodes, etc).
+% Gonzalo Mena, 09/2017
 
 disp('Now loading relevant data structures for the stimulating electrode')
 %% First load optional parameters:
@@ -35,7 +41,6 @@ for j=1:(nbin/2)
             filterStimElectrode=varargin{j*2};
         case 'filterstimelectrode'
             filterNoStimElectrode=varargin{j*2};
-            
         otherwise
             err = MException('MATLAB:InvArgIn',...
                 'Unknown parameter specified');
@@ -110,32 +115,29 @@ Diags{3}=listAmps(:,1)/max(listAmps);
 
 %% evaluate Kernels given the constructed covariate matrices
 
-    types=[1 1 1];
-    factp=[0 3 6 9];
-    
+types=[1 1 1];
+factp=[0 3 6 9];
 
-
-    for k=1:3
-        [Ker, KerD]=evalKernels(Difs{k},Diags{k},x(factp(k)+1:factp(k+1)),types(k));
-        Kers{k}=Ker;
-        [a, b]=eig(Kers{k});
-        Q{k}=a';
-        Qt{k}=a;
-        dL{k}=diag(b);
-        
-    end
+for k=1:3
+    [Ker, KerD]=evalKernels(Difs{k},Diags{k},x(factp(k)+1:factp(k+1)),types(k));
+    Kers{k}=Ker;
+    [a, b]=eig(Kers{k});
+    Q{k}=a';
+    Qt{k}=a;
+    dL{k}=diag(b);
     
-    params.arrayInfo.x=x;
+end
+params.arrayInfo.x=x;
 %% Expand params structure, including stimulation-pattern-specific fields.
 %Q,Q,dL is the eigendecomposition of Ker
 
 
-params.patternInfo.Q=Q; 
+params.patternInfo.Q=Q;
 params.patternInfo.Qt=Qt;
 params.patternInfo.Kers=Kers;
 params.patternInfo.dL=dL;
 
-params.patternInfo.Art=Art;
+params.patternInfo.Art=squeeze(nanmean(TracesAll,2));
 params.patternInfo.var0=var0;
 params.patternInfo.rho=rho;
 params.patternInfo.listAmps=listAmps;
@@ -144,11 +146,11 @@ params.patternInfo.Difs=Difs;
 params.patternInfo.breakpoints=breakpoints;
 params.neuronInfo.templates = templates;
 
-%% Compute stimulating electrode hyperparamteres (these depend on stimulating electrode, therefore cannot be 'initialized')
-if(useStimElectrode)   
+%% Compute stimulating electrode hyperparameters (these depend on stimulating electrode, therefore cannot be 'initialized')
+if(useStimElectrode)
     disp('Now computing stimulating electrode hyperparameters')
-if(params.global.filterStimElectrode+params.global.extraStimElectrode>=1)
-    
+    if(params.global.filterStimElectrode+params.global.extraStimElectrode>=1)
+        
         Diff = zeros(size(listAmps,1),size(listAmps,1));
         for j=1:length(listAmps)
             for i=1:length(listAmps)
@@ -156,29 +158,22 @@ if(params.global.filterStimElectrode+params.global.extraStimElectrode>=1)
             end
         end
         
-        
         Diff=Diff/max(max(listAmps));
-        
-        
         params = MakeStimKernels(params,useNaiveExtrapolateStimElec,Diff,breakpoints);
         disp('Stimulating electrode hyperparameters were succesfully found')
         
-        
-   
-end
+    end
 end
 
 %% Do spike sorting
-  [spikes, Log, params]=SpikeSortingAllCases(params,TracesAll);
-  
-
+[spikes, Log, params]=SpikeSortingAllCases(params,TracesAll);
 
 if(useStimElectrode>=1)
     Output.stimInfo.ActiveElectrodes=activeElecs;
     Output.stimInfo.breakpoints=params.patternInfo.breakpoints;
     if(params.global.extraStimElectrode)
         Output.stimInfo.KersStim=params.patternInfo.KersStim;
-          end
+    end
 else
     Output.stimInfo.ActiveElectrodes=activeElecs(ind);
 end

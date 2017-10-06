@@ -1,3 +1,6 @@
+addpath('Core')
+addpath('Display')
+addpath('Utils')
 %% First compute array-wise artifact hyperparameters (equation 7), load model parameters and store them in params structure
 
 %Art0 Contains an artifact 'pseudosample' constructed by translating mean of traces
@@ -6,9 +9,9 @@
 ArtStr='Art0.mat';
 
 % arrayObj MEA-specific parameters (e.g. positions of electrodes, number of
-% electrodes, etc). Array(501) returns those parameters for the
+% electrodes, etc). Array(512) returns those parameters for the
 % 512-electrode stimulation system.
-arrayObj=Array(501);
+arrayObj=Array(512);
 
 %InitializeArrayRobust for details
 [params]=InitializeArrayRobust(arrayObj,ArtStr);
@@ -24,6 +27,7 @@ params.global.tarray=[0 [7:33]]; %expanded the set to look for spikes a bit
 
 %% Now consider the Data (actual traces, stimulating electrode information, breakpoint list and list of stimulus is stored here).
 DataStr='Data.mat';
+load(DataStr)
 %% Do spike Sorting and Store it in Output structure. Notice the optional fields (e.g. 'useNaiveExtrapolate') see the code in DoSpikeSortingLargeScale for details
 [Output,params]=DoSpikeSortingLargeScale(params,arrayObj,DataStr,'useNaiveExtrapolate',0);
 %Here I updated the params structure for pedagogical reasons. This may not be necessary in practice.
@@ -68,15 +72,16 @@ DataStr='Data.mat';
 
 
 %% Now plot the artifact at the stimulation amplitude n25 (2.01 mA)
+
 center=404; %relative center of the array
 patternNo=404; %stimulating electrode (plotted on a different scale)
-size=[0 0 0.8 0.4] %size of the window ;
+size=[0 0 0.8 0.4]; %size of the window 
 factor=0.2;
 colors{1}=[0 0 1]; %color for the stimulating electrode
 colors{2}=[0 0 0.5]; %color for the non-stimulating electrode
 axiss{2}=[1 20 -50 400]; %axis for the non-stimulating electrode
 axiss{1}=[1 20 -700 200]; %axis for the stimualting electrode
-nh=10; nv=10 % vicinitys in the x and y axis)
+nh=10; nv=10; % neihborhoods in the x and y axis)
 figuren=1; %figure 1
 PlotArtifact(Output.stimInfo.Arts,25,center,patternNo,nh,nv,figuren,size,axiss,factor,colors)
 
@@ -97,9 +102,6 @@ for i=1:24
     title(['Neuron ' num2str(i)])
     set(gca,'fontsize',13)
     set(gca,'TickLength',[0.08 0.08])
-    
-    
-    
     
     pos=get(h2,'position');
     yminnew=pos(2)+pos(4)/2+pos(4)/32;

@@ -1,6 +1,11 @@
 function [spikes, Log, params]=SpikeSortingAllCases(params,TracesAll,varargin)
-%Gonzalo Mena, 3/2016
+% SpikeSortingAllCases performs spike sorting to data contained in TracesAll
+%  and parameters structure params.
+
+%Gonzalo Mena, 09/2017
 disp('Now loading template structures')
+
+%load relevant parameters and values.
 Kers=params.patternInfo.Kers;
 options=params.global.options;
 Q=params.patternInfo.Q;
@@ -19,13 +24,12 @@ extraStimElectrode     = params.global.extraStimElectrode;
 filterStimElectrode    = params.global.filterStimElectrode;
 extraNoStimElectrodes  = params.global.extraNoStimElectrodes;
 filterNoStimElectrodes = params.global.filterNoStimElectrodes;
-
 elExtra=zeros(size(Art,1),1);
 
+%load stim electrode kernels kernels if using stimulating electrode
 if(useStimElectrode>=1)
     if(extraStimElectrode+filterStimElectrode>=1)
         KersSti=params.patternInfo.KersStim;
-        
         dLSti=params.patternInfo.dLStim;
         QSti=params.patternInfo.QStim;
         QtSti=params.patternInfo.QtStim;
@@ -35,27 +39,21 @@ if(useStimElectrode>=1)
     br=intersect(unique(breakpoints{1}(2:end)+1),[1:size(Art,1)]);
     elExtra(br)=stimElec;
 else
-    
     breakIni=100000;
 end
 contMessage=1;
 var0=params.patternInfo.var0;
-
+%% Determining action potential and turning them into matrices
+% also, determining which electrodes will be used for sorting
 difTrials=1;
-
 thresEI=params.global.thresEI;
 Tmax=params.global.Tmax;
 tarray=params.global.tarray;
 maxIter=params.global.maxIter;
-
-    maxCond=size(TracesAll,1);
-
-
-
+maxCond=size(TracesAll,1);
 x=params.arrayInfo.x;
-
-
 els=[];
+%determining useful electrodes
 for n=1:length(templates)
     
     spikes{n}=NaN*zeros(maxCond,size(TracesAll,2));
@@ -73,30 +71,26 @@ for n=1:length(templates)
     params.neuronInfo.ActiveElectrodes{n}=b(ind2);
     els=union(b(ind2),els);
 end
-
 tarray2=setdiff(tarray,0);
 params.neuronInfo.ActiveElectrodesAll=els;
 
 if(useStimElectrode==0)
-     elExtra(1:maxCond)=stimElec;
+    elExtra(1:maxCond)=stimElec;
 end
-
-
 
 indels1=1:Tmax*length(els);
 indpat=find(stimElec==els);
 indels2=setdiff(1:Tmax*length(els),indpat:length(els):Tmax*length(els));
-
-
 KnAll=zeros(length(els)*Tmax,1);
 indNeurons=[0 kron(1:length(templates),ones(1,length(tarray2)))];
 indTimes=[0 kron(ones(1,length(templates)),tarray2)];
 indTimesArray=[0 kron(ones(1,length(templates)),1:length(tarray2))];
 
+%load action potentials at different times and tur them into 'toeplitz' 
+% matrices, Kn'
 for n=1:length(templates)
     for t=1:length(tarray2)
         [ActionPotential]=makeActionPotential(n,tarray2(t),templates,Tmax);
-        
         Knn(n,t,:,:)=ActionPotential(:,:);
         Aux(:,t)=reshape(ActionPotential(els,:),Tmax*length(els),1)';
         
@@ -105,6 +99,10 @@ for n=1:length(templates)
 end
 
 KnnReshaped=reshape(Knn,size(Knn,1)*size(Knn,2),size(Knn,3),size(Knn,4));
+
+%% compute relevant quantities for stimulating electrode, if necessary
+%e.g. for eigendecomposition we need to compute kronecker product between
+% eigenvalues matrix of each kernel
 
 krondiag0=1;
 for k=1:2
@@ -119,7 +117,6 @@ krondiag0old=krondiag0;
 
 if(useStimElectrode>=1)
     indStim=find(1<=breakpoints{1}(2:end));
-        
     if(extraStimElectrode+filterStimElectrode>=1)
         indStim=indStim(1);
         indStimOld=indStim;
@@ -128,64 +125,47 @@ if(useStimElectrode>=1)
         QtStim=QtSti{indStim};
         KersStim=KersSti{indStim};
         xStim=xSti(indStim,:);
-        
         krondiag0Stim=1;
         krondiag0Stim=kron(krondiag0Stim,dLStim{1});
     end
 end
 
 x01=xold(end);
-
-
 disp('Now doing spike sorting')
+%% here the actual spike sorting begins
 for i=1:maxCond
-    
+    %update kernels/quantities for stim electrode, if using them
     if(useStimElectrode>=1)
-        
         indStim=find(i<=breakpoints{1}(2:end));
         indStim=indStim(1);
         breakIni=breakpoints{1}(indStim)+1;
-        
-        
         if(extraStimElectrode+filterStimElectrode>=1)
-            
             if(~(indStim==indStimOld))
-                
                 dLStim=dLSti{indStim};
                 QStim=QSti{indStim};
                 QtStim=QtSti{indStim};
                 KersStim=KersSti{indStim};
                 xStim=xSti(indStim,:);
-                
                 krondiag0Stim=1;
                 krondiag0Stim=kron(krondiag0Stim,dLStim{1});
-                
                 indStimOld=indStim;
             end
-            
             krondiaginvStim=(exp(xStim(end))*krondiag0Stim*KersStim{2}(i-breakIni+1,i-breakIni+1)+var0).^(-1);
         end
-        
     end
-    
-    
     trialI=nansum(~isnan(squeeze(TracesAll(i,:,1,1))));
     params.patternInfo.nTrials(i)=trialI;
     
-    
+    %determine excluded electrodes, if any
     els2=setdiff(els,elExtra(i));
     if(elExtra(i)>0)
         indels=indels2;
     else
         indels=indels1;
     end
-    
-    
-    
     krondiaginv=(exp(x(end))*krondiag0*Kers{3}(i,i)+var0).^(-1);
     
-    
-    
+    %extrapolate artifact
     if(i>1)
         if(extraNoStimElectrodes)
             [Apred1]=ExtrapolateArtifactCond(Kers,Q,Qt,dL,i,ArtF(:,ind,:),x,var0);
@@ -202,16 +182,13 @@ for i=1:maxCond
             [Apred2]=ExtrapolateArtifactCondStim(KersStim,QStim,QtStim,dLStim,i-breakIni+1,squeeze(ArtF(breakIni:end,stimElec,:)),xStim,var0);
             
         end
-        
         Apred(:,stimElec,:)=Apred2;
     else
         Apred=zeros(1,size(Art,2),size(Art,3));
     end
-    
-    
     flag=1;
     cont=1;
-    
+    %spike identification loop
     while(flag==1&&cont<=maxIter)
         
         clear times
@@ -221,17 +198,13 @@ for i=1:maxCond
             indels=indels1;
         end
         
-        
         AA0=reshape(Apred(:,els2,:),Tmax*length(els2),1);
-        
+        %update current residuals
         if(trialI>1)
             TracesResidual=squeeze(TracesAll(i,1:trialI,:,1:Tmax));
         else
             TracesResidual=reshape(squeeze(TracesAll(i,1:trialI,:,1:Tmax)),1,size(TracesAll,3),size(TracesAll,4));
         end
-        
-        
-        
         indTrial=[1:trialI];
         contFindNeurons=1;
         times=zeros(length(templates),trialI);
@@ -252,17 +225,13 @@ for i=1:maxCond
             
             idx = sub2ind(size(times), indNeurons(tmax(indTrial)),indTrial);
             times(idx)=indTimes(tmax(indTrial));
-            
             idxSubtract = sub2ind(size(squeeze(Knn(:,:,1,1))), indNeurons(tmax(indTrial)),indTimesArray(tmax(indTrial)));
-            
             TracesResidual(indTrial,:,:)=TracesResidual(indTrial,:,:)-KnnReshaped(idxSubtract,:,:);
             contFindNeurons=contFindNeurons+1;
         end
-        
-        
-        
         Art(i,:,:)=squeeze(nanmean(TracesResidual,1));
         
+        %filter artifact after finding spikes
         if(filterNoStimElectrodes)
             ArtF(i,ind,:)=FilterArtifactLocal(Kers,Art(1:i,ind,:),[x log(var0)],i,ind,Q,Qt,krondiaginv);
         else
@@ -280,10 +249,10 @@ for i=1:maxCond
             end
             
         end
-        
         Apred=ArtF(i,:,:);
-        
         flag2=ones(length(templates),1);
+        %determine if there are changes in spikes.
+        %if not, iterations are stopped
         for n=1:length(templates)
             
             if(nansum(times(n,:)==spikes{n}(i,1:trialI))>=trialI-difTrials)
@@ -301,14 +270,8 @@ for i=1:maxCond
             contMessage=contMessage+1;
         end
     end
-    
-    
-    
     Log.Iter(i)=cont-1;
-   disp(['Finished spike sorting for the stimulation amplitude n ' num2str(i)]) 
+    disp(['Finished spike identification for the stimulation amplitude n ' num2str(i)])
 end
-
-
-
 
 params.patternInfo.Arts=ArtF;

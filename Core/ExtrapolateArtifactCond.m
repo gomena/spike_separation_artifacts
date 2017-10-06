@@ -1,8 +1,12 @@
 function [Apred]=ExtrapolateArtifactCond(Kers,Q,Qt,dL,cmax,Art,x,sigma0)
-%Extrapolate artifact at condition cmax given (full) observations until
-%condition cmax-1. Extrapolation is done in al electrodes but the
-%stimulating
-%Gonzalo Mena, 03/2016
+%  ExtrapolateArtifactCond extrapolates artifact at condition cmax given
+%    (full) observations until condition cmax-1. Extrapolation is done
+%    in al electrodes but the stimulating. It implements equation 11.
+%  L,Q,Qt represent the eigenvalue decomposition of Kers (cell arrays)
+%  x is a vector representing parameters
+%  sigma0 is the noise variance
+
+%Gonzalo Mena, 09/2017
 
 
 %extrapolate
@@ -20,7 +24,6 @@ train{3}=setdiff([1:size(Art,1)],ctest);
 
 Ktrain{1}=Kers{1};
 Ktrain{2}=Kers{2};
-
 Ktrain{3}=Kers{3}(train{3},train{3});
 
 

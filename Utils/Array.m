@@ -19,8 +19,8 @@ classdef Array
     methods
         function obj = Array(arrayID)
             switch arrayID
-                case {1502,1504}
-                    [obj.xc,obj.yc] = getElectrodeCoords519();                 
+                case 519
+                    [obj.xc,obj.yc] = getElectrodeCoords(519);                 
                     obj.numElecs = 519;
                     obj.elecSpacing = 30; % microns
                     obj.nullChannels = [1 130 259 260 389 390 519];
@@ -32,35 +32,19 @@ classdef Array
                     obj.center=448;
                     obj.maxR=nanmax(sqrt(nansum(positions'.^2)));
 
-                case {501,504}
-
-                    [obj.xc,obj.yc] = getElectrodeCoords512();                 
+                case 512
+                    [obj.xc,obj.yc] = getElectrodeCoords512(); 
                     obj.numElecs = 512;
                     obj.elecSpacing = 60; % microns
                     obj.nullChannels = [];
                     obj.sampleRate = 20000;
                     positions=getPositions(obj);
-                    
                     x=repmat(nansum(positions'.^2)',1,obj.numElecs);
                     xy=positions*positions';
                     obj.difPos=sqrt(x-2*xy+x');
                     obj.center=316;
                     obj.maxR=nanmax(sqrt(nansum(positions'.^2)));
-                case 1
-                    [obj.xc,obj.yc] = getElectrodeCoords61();                 
-                    obj.numElecs = 64;
-                    obj.elecSpacing = 60; % microns
-                    obj.nullChannels = [9 25 57];
-                    obj.sampleRate = 20000;
-                    positions=getPositions(obj);
-                  
-                    x=repmat(nansum(positions'.^2)',1,obj.numElecs);
-                    xy=positions*positions';
-                  
-                    center=41;
-                    obj.maxR=nanmax(sqrt(nansum(positions'.^2)));
-                    obj.difPos=sqrt(x-2*xy+x');
-                    obj.center=41;
+                
             end
         end
         
@@ -102,6 +86,7 @@ classdef Array
             % radial distance from the center electrode. The value 1.15 is
             % because the electrode spacing is not exact on our specific
             % hardware.
+            
             neighborElectrodes = find(squeeze(distances) < maxDist*1.15); 
            
             % Sort such that the center electrode is first and sorts the

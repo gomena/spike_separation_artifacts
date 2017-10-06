@@ -1,8 +1,14 @@
 function [Apred]=ExtrapolateArtifactCondStim(Kers,Q,Qt,dL,cmax,Art,x,sigma2)
-%Extrapolate artifact at condition cmax given (full) observations until
-%condition cmax-1. Extrapolation is done in al electrodes but the
-%stimulating
-%Gonzalo Mena, 03/2016
+%  Extrapolate artifact at condition cmax given (full) observations until
+%    condition cmax-1. Extrapolation is done in the stimulating electrode.
+%    It implements equation 11.
+%  L,Q,Qt represent the eigenvalue decomposition of Kers (cell arrays)
+%  x is a vector representing parameters
+%  sigma2 is the noise variance
+%  Art is the artifact
+%  sigma2 is an estimate of the variance for the stimulating electrode
+
+%Gonzalo Mena, 09/2017
 
 
 T=size(Kers{1},1);
@@ -27,16 +33,16 @@ Ktraintest{2}=Kers{2}(test{2},train{2});
 
 krondiag=1;
 for k=1:2
-if(k==2)
-    [a b]=eig(Ktrain{k});
-    Q{k}=a';
-    Qt{k}=a;
-    dL{k}=diag(b);
-end
-
-krondiag=kron(krondiag,dL{k});
-
-
+    if(k==2)
+        [a b]=eig(Ktrain{k});
+        Q{k}=a';
+        Qt{k}=a;
+        dL{k}=diag(b);
+    end
+    
+    krondiag=kron(krondiag,dL{k});
+    
+    
 end
 
 krondiag=exp(x(end))*krondiag+sigma2;
@@ -47,5 +53,4 @@ prod1=krondiaginv.*prod1;
 alpha=KronProd(Qt,prod1);
 
 Apred=exp(x(end))*KronProd(Ktraintest,alpha);
-
 Apred=reshape(Apred,length(ctest),T);

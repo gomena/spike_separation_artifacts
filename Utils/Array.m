@@ -33,7 +33,7 @@ classdef Array
                     obj.maxR=nanmax(sqrt(nansum(positions'.^2)));
 
                 case 512
-                    [obj.xc,obj.yc] = getElectrodeCoords512(); 
+                    [obj.xc,obj.yc] = getElectrodeCoords(512); 
                     obj.numElecs = 512;
                     obj.elecSpacing = 60; % microns
                     obj.nullChannels = [];

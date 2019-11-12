@@ -90,7 +90,7 @@ indTimesArray=[0 kron(ones(1,length(templates)),1:length(tarray2))];
 % matrices, Kn'
 for n=1:length(templates)
     for t=1:length(tarray2)
-        [ActionPotential]=makeActionPotential(n,tarray2(t),templates,Tmax);
+        [ActionPotential]=MakeActionPotential(n,tarray2(t),templates,Tmax);
         Knn(n,t,:,:)=ActionPotential(:,:);
         Aux(:,t)=reshape(ActionPotential(els,:),Tmax*length(els),1)';
         

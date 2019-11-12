@@ -14,7 +14,7 @@ hf=figure(numfig);
 set(hf,'units','normalized');
 set(hf,'position',sizes)
 set(hf,'color',[1 1 1])
-[xc,yc] = getElectrodeCoords512();
+[xc,yc] = getElectrodeCoords(512);
 [a b]=sort(abs(unique(xc)-xc(center)),'ascend');
 [c d]=sort(abs(unique(yc)-yc(center)),'ascend');
 pat1=find(abs(xc-xc(center))<=a(nh));
